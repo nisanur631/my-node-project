@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-commerce Uygulaması</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <h1>MongoDB Admin Paneli</h1>
+
+    <!-- Ürün Ekleme Formu -->
+    <div class="product-form">
+        <h2>Yeni Ürün Ekle</h2>
+        <form id="productForm" enctype="multipart/form-data">
+            <input type="text" id="product_name" name="product_name" placeholder="Ürün Adı" required><br>
+            <input type="number" id="product_price" name="product_price" placeholder="Ürün Fiyatı" required><br>
+            <input type="file" id="product_image" name="product_image" required><br>
+            <button type="submit">Ürün Ekle</button>
+        </form>
+    </div>
+
+    <!-- Ürün Listeleme -->
+    <div class="product-list">
+        <h2>Ürünler</h2>
+        <ul id="productList"></ul>
+    </div>
+
+    <script>
+        const apiUrl = '/api/products';
+
+        // Ürünleri getirme ve listeleme
+        async function fetchProducts() {
+            const response = await fetch(apiUrl);
+            const products = await response.json();
+            const productList = document.getElementById('productList');
+            productList.innerHTML = ''; // Listeyi temizle
+
+            products.forEach(product => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div>
+                        <img src="/uploads/${product.product_image}" alt="${product.product_name}"><br>
+                        <strong>${product.product_name}</strong><br>
+                        Fiyat: ${product.product_price} TL
+                    </div>
+                    <div>
+                        <button onclick="deleteProduct('${product._id}')">Sil</button>
+                        <button onclick="updateProduct('${product._id}')">Güncelle</button>
+                    </div>
+                `;
+                productList.appendChild(li);
+            });
+        }
+
+        // Ürün silme
+        async function deleteProduct(productId) {
+            const response = await fetch(`${apiUrl}/${productId}`, {
+                method: 'DELETE',
+            });
+            const message = await response.text();
+            alert(message);
+            fetchProducts(); // Listeyi güncelle
+        }
+
+        // Ürün güncelleme
+        async function updateProduct(productId) {
+            const productName = prompt('Yeni Ürün Adı:');
+            const productPrice = prompt('Yeni Ürün Fiyatı:');
+            const formData = new FormData();
+            formData.append('product_name', productName);
+            formData.append('product_price', productPrice);
+
+            const response = await fetch(`${apiUrl}/${productId}`, {
+                method: 'PUT',
+                body: formData,
+            });
+
+            const message = await response.text();
+            alert(message);
+            fetchProducts(); // Listeyi güncelle
+        }
+
+        // Ürün ekleme formunu gönderme
+        document.getElementById('productForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const formData = new FormData(this);
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            if (result.insertedId) {
+                alert('Ürün başarıyla eklendi!');
+                fetchProducts(); // Listeyi güncelle
+            } else {
+                alert('Ürün eklenirken bir hata oluştu!');
+            }
+        });
+
+        // Sayfa yüklendiğinde ürünleri getir
+        window.onload = fetchProducts;
+    </script>
+
+</body>
+</html>
